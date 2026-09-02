@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-sa-demo
+  namespace: default
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: k8s-sa-demo
+
+  template:
+    metadata:
+      labels:
+        app: k8s-sa-demo
+
+    spec:
+      serviceAccountName: app-log-reader
+
+      containers:
+        - name: k8s-sa-demo
+          image: zain75117/k8s-sa-demo:1
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8000
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
