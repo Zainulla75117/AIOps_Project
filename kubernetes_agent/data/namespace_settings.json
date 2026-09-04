@@ -1,0 +1,45 @@
+{
+  "namespaces": {
+    "default": {
+      "name": "default",
+      "enabled": true,
+      "is_system": false,
+      "discovered_at": "2026-09-04T18:38:18.200386",
+      "enabled_at": "2026-09-04T18:38:18.200374",
+      "disabled_at": null
+    },
+    "kube-system": {
+      "name": "kube-system",
+      "enabled": false,
+      "is_system": true,
+      "discovered_at": "2026-09-04T18:38:18.201026",
+      "enabled_at": null,
+      "disabled_at": null
+    },
+    "kube-public": {
+      "name": "kube-public",
+      "enabled": false,
+      "is_system": true,
+      "discovered_at": "2026-09-04T18:38:18.201033",
+      "enabled_at": null,
+      "disabled_at": null
+    },
+    "kube-node-lease": {
+      "name": "kube-node-lease",
+      "enabled": false,
+      "is_system": true,
+      "discovered_at": "2026-09-04T18:38:18.201037",
+      "enabled_at": null,
+      "disabled_at": null
+    },
+    "aiops-system": {
+      "name": "aiops-system",
+      "enabled": false,
+      "is_system": true,
+      "discovered_at": "2026-09-04T18:38:18.201044",
+      "enabled_at": null,
+      "disabled_at": null
+    }
+  },
+  "last_updated": "2026-09-04T18:38:18.201049"
+}

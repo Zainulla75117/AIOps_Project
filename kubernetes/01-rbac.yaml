@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aiops-system
+  labels:
+    app.kubernetes.io/name: aiops-agent
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aiops-agent-sa
+  namespace: aiops-system
+  labels:
+    app.kubernetes.io/name: aiops-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aiops-agent-role
+  labels:
+    app.kubernetes.io/name: aiops-agent
+rules:
+  # The agent requires READ-ONLY access to these core resources
+  # It explicitly does NOT have access to Secrets or the ability to exec/delete
+  - apiGroups: [""]
+    resources: 
+      - pods
+      - pods/log
+      - services
+      - nodes
+      - events
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: 
+      - deployments
+      - replicasets
+      - daemonsets
+      - statefulsets
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aiops-agent-binding
+  labels:
+    app.kubernetes.io/name: aiops-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aiops-agent-role
+subjects:
+  - kind: ServiceAccount
+    name: aiops-agent-sa
+    namespace: aiops-system

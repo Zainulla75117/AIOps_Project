@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: error-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: error-test
+  template:
+    metadata:
+      labels:
+        app: error-test
+    spec:
+      containers:
+        - name: error-test
+          image: busybox:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting error-test application..."
+              sleep 10
+              echo "ERROR: Database connection failed"
+              echo "ERROR: Unable to connect to backend service"
+              echo "ERROR: Application crashed"
+              exit 1

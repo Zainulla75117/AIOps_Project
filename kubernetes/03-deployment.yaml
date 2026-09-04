@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-agent
+  namespace: aiops-system
+  labels:
+    app.kubernetes.io/name: aiops-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aiops-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aiops-agent
+    spec:
+      serviceAccountName: aiops-agent-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: agent
+          image: aiops-agent:latest  # Replace with your registry URI
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: aiops-agent-config
+            - secretRef:
+                name: aiops-agent-secrets
+          # Use a persistent volume for namespace settings to survive restarts
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: aiops-data-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aiops-data-pvc
+  namespace: aiops-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aiops-agent-service
+  namespace: aiops-system
+  labels:
+    app.kubernetes.io/name: aiops-agent
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: aiops-agent
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
