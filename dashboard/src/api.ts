@@ -172,6 +172,7 @@ export interface ChatSession {
   first_message: string;
   last_message: string;
   first_query: string;
+  session_title?: string;
 }
 
 export interface IncidentHistoryItem {
@@ -236,8 +237,8 @@ export const api = {
     return res.data;
   },
 
-  askQuery: async (query: string, sessionId?: string): Promise<{ reply: string }> => {
-    const res = await apiClient.post<{ reply: string }>('/chat', { query, session_id: sessionId });
+  askQuery: async (query: string, sessionId?: string, model: 'bedrock' | 'gemini' = 'bedrock'): Promise<{ reply: string; sources: string[]; model_used: string }> => {
+    const res = await apiClient.post<{ reply: string; sources: string[]; model_used: string }>('/chat', { query, session_id: sessionId, model });
     return res.data;
   },
 
@@ -285,6 +286,16 @@ export const api = {
     return res.data;
   },
 
+  deleteSession: async (sessionId: string): Promise<{ session_id: string; deleted_count: number }> => {
+    const res = await apiClient.delete(`/history/chat/sessions/${sessionId}`);
+    return res.data;
+  },
+
+  renameSession: async (sessionId: string, title: string): Promise<{ session_id: string; title: string }> => {
+    const res = await apiClient.put(`/history/chat/sessions/${sessionId}`, { title });
+    return res.data;
+  },
+
   getIncidentHistory: async (limit: number = 50, status: string = 'all', severity: string = 'all'): Promise<IncidentHistoryItem[]> => {
     const res = await apiClient.get<IncidentHistoryItem[]>(`/history/incidents?limit=${limit}&status=${status}&severity=${severity}`);
     return res.data;
@@ -297,6 +308,45 @@ export const api = {
 
   getScanMetrics: async (hours: number = 24): Promise<ScanHistoryItem[]> => {
     const res = await apiClient.get<ScanHistoryItem[]>(`/history/scans/metrics?hours=${hours}`);
+    return res.data;
+  },
+
+  // Admin
+  adminLogin: async (password: string): Promise<{ token: string }> => {
+    const res = await apiClient.post<{ token: string }>('/admin/login', { password });
+    return res.data;
+  },
+
+  uploadDocument: async (file: File, token: string): Promise<{ source: string; chunks_created: number; message: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post('/admin/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  },
+
+  getDocuments: async (token: string): Promise<{ documents: Array<{ source: string; chunk_count: number }> }> => {
+    const res = await apiClient.get('/admin/documents', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  deleteDocument: async (source: string, token: string): Promise<{ source: string; chunks_deleted: number }> => {
+    const res = await apiClient.delete(`/admin/documents/${encodeURIComponent(source)}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  getDocumentChunks: async (source: string, token: string): Promise<{ source: string; chunks: Array<{ index: number; content: string; metadata: Record<string, any>; length: number }>; total: number }> => {
+    const res = await apiClient.get(`/admin/documents/${encodeURIComponent(source)}/chunks`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
     return res.data;
   },
 };

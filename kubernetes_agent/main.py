@@ -33,6 +33,7 @@ from kubernetes_agent.api.routes import router as core_router
 from kubernetes_agent.api.settings_routes import router as settings_router
 from kubernetes_agent.api.workloads_routes import router as workloads_router
 from kubernetes_agent.api.history_routes import router as history_router
+from kubernetes_agent.api.admin_routes import router as admin_router
 from kubernetes_agent.collectors.deployment_collector import DeploymentCollector
 from kubernetes_agent.collectors.event_collector import EventCollector
 from kubernetes_agent.collectors.log_collector import LogCollector
@@ -87,6 +88,13 @@ async def lifespan(app: FastAPI):
     # 1. Setup Logging
     cfg = get_config()
     setup_logging(debug=True, json_output=False) # Use console logging for local dev
+
+    # Silence noisy PyMongo heartbeat / monitoring logs
+    import logging
+    for _noisy in ("pymongo", "pymongo.serverSelection", "pymongo.connection",
+                    "pymongo.command", "pymongo.topology", "pymongo.server"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
+
     logger.info("aiops_agent_starting", version="0.1.0")
 
     # 2. Connect to Kubernetes
@@ -145,7 +153,17 @@ async def lifespan(app: FastAPI):
     )
     dependencies.set_scanner(scanner)
     
-    # 9. Start background scan loop
+    # 9. Initialize RAG pipeline (ChromaDB + Bedrock embeddings)
+    try:
+        from kubernetes_agent.rag.vector_store import get_vector_store
+        _vs = get_vector_store(cfg)
+        dependencies.set_rag_initialized(True)
+        logger.info("rag_pipeline_initialized", persist_dir=cfg.chroma_persist_dir)
+    except Exception as exc:
+        logger.warning("rag_pipeline_init_failed", error=str(exc))
+        dependencies.set_rag_initialized(False)
+
+    # 10. Start background scan loop
     _scan_task = asyncio.create_task(periodic_scan_loop(scanner, ns_manager))
     
     yield # App is running
@@ -188,6 +206,7 @@ def create_app() -> FastAPI:
     api_router.include_router(settings_router)
     api_router.include_router(workloads_router)
     api_router.include_router(history_router)
+    api_router.include_router(admin_router)
     app.include_router(api_router)
     
     # Mount the static dashboard build

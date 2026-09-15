@@ -67,6 +67,25 @@ class AgentConfig(BaseSettings):
         ]
     )
 
+    # ---- AWS Bedrock ----
+    aws_region: str = "us-east-1"
+    bedrock_embedding_model: str = "amazon.titan-embed-text-v2:0"
+    bedrock_llm_model: str = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    bedrock_temperature: float = 0.3
+    bedrock_max_tokens: int = 4096
+
+    # ---- RAG ----
+    chroma_persist_dir: str = "db/chroma_db"
+    chroma_collection_name: str = "aiops_documents"
+    rag_chunk_size: int = 1000
+    rag_chunk_overlap: int = 100
+    rag_top_k: int = 5
+    rag_relevance_threshold: float = 0.5  # Only inject docs above this relevance score
+
+    # ---- Admin Auth ----
+    admin_password_hash: str = ""
+    jwt_secret: str = "change-me-in-production"
+
     # ---- MongoDB ----
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db_name: str = "aiops_agent"

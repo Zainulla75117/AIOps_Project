@@ -38,6 +38,9 @@ _chat_repo: ChatRepository | None = None
 _incident_repo: IncidentRepository | None = None
 _scan_repo: ScanRepository | None = None
 
+# RAG pipeline initialized flag
+_rag_initialized: bool = False
+
 
 # ---- Setters (called during startup) ----
 
@@ -77,6 +80,12 @@ def set_collectors(
     _service_collector = services
     _node_collector = nodes
     _event_collector = events
+
+
+def set_rag_initialized(initialized: bool = True) -> None:
+    """Mark the RAG pipeline as initialized."""
+    global _rag_initialized
+    _rag_initialized = initialized
 
 
 # ---- FastAPI Dependencies ----
@@ -166,3 +175,8 @@ def get_event_collector() -> EventCollector:
     if _event_collector is None:
         raise RuntimeError("EventCollector not initialized.")
     return _event_collector
+
+
+def is_rag_initialized() -> bool:
+    """Check if the RAG pipeline has been initialized."""
+    return _rag_initialized

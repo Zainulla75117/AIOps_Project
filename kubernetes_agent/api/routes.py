@@ -32,7 +32,11 @@ from kubernetes_agent.models.incident import IncidentReport
 from kubernetes_agent.utils.security import mask_sensitive_data
 import re
 
+from kubernetes_agent.utils.logging import get_logger
+
 router = APIRouter(tags=["Core"])
+
+logger = get_logger(__name__)
 
 
 @router.get("/status", response_model=AgentStatusResponse)
@@ -242,11 +246,34 @@ async def chat_with_agent(
     events_coll: EventCollector = Depends(get_event_collector),
     chat_repo: ChatRepository = Depends(get_chat_repo),
 ):
-    """Chat with the agent using live cluster context."""
-    gemini = GeminiProvider(cfg)
-    
-    if not gemini.is_available():
-        return ChatResponse(reply="Error: Gemini API is not configured or unavailable.")
+    """Chat with the agent using live cluster context and RAG documents.
+
+    Supports model selection via request.model:
+    - "bedrock" (default): Uses Claude Haiku via AWS Bedrock
+    - "gemini": Uses the configured Gemini model
+    """
+    use_bedrock = request.model != "gemini"
+    model_used = "bedrock" if use_bedrock else "gemini"
+
+    # Validate chosen model is available
+    if use_bedrock:
+        from kubernetes_agent.api.dependencies import is_rag_initialized
+        # Bedrock LLM can work even without RAG docs
+        try:
+            from kubernetes_agent.rag.bedrock_llm import get_bedrock_llm
+            bedrock_llm = get_bedrock_llm(cfg)
+        except Exception as exc:
+            return ChatResponse(
+                reply=f"Error: Bedrock LLM is not available: {exc}. Try switching to Gemini.",
+                model_used="bedrock",
+            )
+    else:
+        gemini = GeminiProvider(cfg)
+        if not gemini.is_available():
+            return ChatResponse(
+                reply="Error: Gemini API is not configured or unavailable.",
+                model_used="gemini",
+            )
 
     start_time = time.monotonic()
 
@@ -263,18 +290,16 @@ async def chat_with_agent(
     except Exception:
         pods, nodes, deployments, services, events = [], [], [], [], []
 
-    # 2. Build context
+    # 2. Build cluster context
     cluster_context = _build_cluster_context(
         pods, nodes, deployments, services, events, scanner.active_incidents
     )
 
     # 2.5 Inject app logs if relevant
     logs_context = ""
-    # Did the user explicitly ask for logs for a specific pod?
     pod_match = re.search(r"logs?(?:\s+for)?\s+([a-zA-Z0-9-]+)", request.query.lower())
     target_pod = pod_match.group(1) if pod_match else None
-    
-    # Or, if there's a crashing pod, auto-fetch logs for the first one to help the LLM
+
     if not target_pod:
         for p in pods:
             for cs in p.container_statuses:
@@ -283,9 +308,8 @@ async def chat_with_agent(
                     break
             if target_pod:
                 break
-    
+
     if target_pod:
-        # Find the namespace for this pod
         target_ns = next((p.namespace for p in pods if p.name == target_pod), None)
         if target_ns:
             try:
@@ -295,39 +319,123 @@ async def chat_with_agent(
             except Exception as e:
                 logs_context = f"\n\n[Could not fetch logs for {target_ns}/{target_pod}: {e}]\n"
 
-    # 3. Build prompt with context
+    # 3. Build system instruction (no forced RAG context)
     system_instruction = (
         "You are an expert Kubernetes AIOps assistant embedded in a cluster monitoring dashboard. "
         "You have access to LIVE cluster data provided below. "
-        "Answer the user's question using ONLY the provided cluster data. "
+        "You also have access to a tool to search PROJECT DOCUMENTATION. ONLY use this tool if the user's query "
+        "requires knowledge about the project architecture, custom setups, or specific documentation. Do NOT use it for "
+        "simple conversational greetings or general Kubernetes questions that can be answered from the live data.\n\n"
+        "Answer the user's question using the provided context. "
         "Be specific — reference actual pod names, node names, deployment names, and exact counts. "
         "If you see problems, explain what they are and suggest fixes. "
         "If the data shows everything is healthy, say so confidently. "
         "Format your response clearly with sections if needed. Keep it concise but thorough. "
         "Do NOT make up data that is not in the provided context.\n\n"
-        "IMPORTANT: Always provide exactly 3 suggested follow-up questions the user could ask next to continue "
-        "troubleshooting or exploring. Wrap these questions inside a <follow_ups> XML tag at the very end of your response, "
-        "with each question on a new line starting with a dash. "
-        "Example:\n"
-        "<follow_ups>\n- What are the logs for pod XYZ?\n- Why did node ABC restart?\n- Show me unhealthy deployments.\n</follow_ups>"
+        "IMPORTANT FINAL INSTRUCTION:\n"
+        "You must generate exactly 3 suggested follow-up prompts for the user to click. "
+        "CRITICAL: These prompts MUST be written from the USER'S perspective speaking to you. "
+        "DO NOT ask the user questions. DO NOT use 'you' to refer to the user.\n"
+        "WRONG: 'Do you want me to deploy something?'\n"
+        "WRONG: 'Can you describe your workloads?'\n"
+        "CORRECT: 'Show me the failing pods.'\n"
+        "CORRECT: 'How do I fix the crashloop issue?'\n"
+        "CORRECT: 'What is the status of my cluster?'\n\n"
+        "Wrap these 3 suggestions inside a <follow_ups> XML tag at the very end of your response, "
+        "with each question on a new line starting with a dash."
     )
 
     prompt = f"{cluster_context}{logs_context}\n\n=== USER QUESTION ===\n{request.query}"
 
-    # 4. Call Gemini
+    rag_sources: list[str] = []
+
+    # 4. Define the RAG Tool
+    from langchain_core.tools import tool
+    
+    @tool
+    def search_project_documentation(query: str) -> str:
+        """Search the uploaded project documentation for relevant information to answer the user's question."""
+        from kubernetes_agent.api.dependencies import is_rag_initialized
+        from kubernetes_agent.rag.vector_store import similarity_search_with_scores
+        
+        if not is_rag_initialized():
+            return "Project documentation is not available."
+            
+        try:
+            scored_docs = similarity_search_with_scores(query, cfg=cfg)
+            if not scored_docs:
+                return "No relevant documents found."
+                
+            chunks = []
+            for doc, score in scored_docs:
+                src = doc.metadata.get("source", "unknown")
+                if src not in rag_sources:
+                    rag_sources.append(src)
+                chunks.append(f"[Source: {src} | Relevance: {score:.2f}]\n{doc.page_content}")
+                
+            return "\n\n=== PROJECT DOCUMENTATION ===\n" + "\n---\n".join(chunks)
+        except Exception as exc:
+            return f"Error searching documentation: {exc}"
+
+    # 5. Call LLM with Tool Binding
     try:
-        response = await gemini.analyze(
-            system_instruction=system_instruction,
-            prompt=prompt,
-            schema=ChatResponse,
-        )
-        reply = response.reply if isinstance(response, ChatResponse) else str(response)
+        if use_bedrock:
+            from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+            llm_with_tools = bedrock_llm.bind_tools([search_project_documentation])
+            messages = [
+                SystemMessage(content=system_instruction),
+                HumanMessage(content=prompt),
+            ]
+            response = await asyncio.to_thread(llm_with_tools.invoke, messages)
+            
+            # If Claude decides it needs docs, it will call the tool
+            if response.tool_calls:
+                messages.append(response)
+                for tc in response.tool_calls:
+                    if tc["name"] == "search_project_documentation":
+                        tool_msg = await asyncio.to_thread(search_project_documentation.invoke, tc)
+                        messages.append(tool_msg)
+                
+                # Second call with the tool results
+                response = await asyncio.to_thread(llm_with_tools.invoke, messages)
+                
+            reply = response.content if hasattr(response, "content") else str(response)
+        else:
+            # For Gemini, we fall back to a naive RAG pre-fetch if it looks like it needs it, 
+            # or just do direct since the SDK isn't wired for Langchain tools here yet.
+            # We'll just do a basic keyword heuristic for Gemini for now.
+            rag_context = ""
+            q_lower = request.query.lower()
+            if len(q_lower.split()) > 3 or any(k in q_lower for k in ["project", "doc", "architecture", "setup"]):
+                try:
+                    from kubernetes_agent.api.dependencies import is_rag_initialized
+                    if is_rag_initialized():
+                        from kubernetes_agent.rag.vector_store import similarity_search_with_scores
+                        scored_docs = similarity_search_with_scores(request.query, cfg=cfg)
+                        if scored_docs:
+                            chunks = []
+                            for doc, score in scored_docs:
+                                src = doc.metadata.get("source", "unknown")
+                                if src not in rag_sources:
+                                    rag_sources.append(src)
+                                chunks.append(f"[Source: {src}]\n{doc.page_content}")
+                            rag_context = "\n\n=== PROJECT DOCUMENTATION ===\n" + "\n---\n".join(chunks)
+                except Exception:
+                    pass
+            
+            gemini_prompt = prompt + rag_context
+            response = await gemini.analyze(
+                system_instruction=system_instruction,
+                prompt=gemini_prompt,
+                schema=ChatResponse,
+            )
+            reply = response.reply if isinstance(response, ChatResponse) else str(response)
     except Exception as exc:
         reply = f"An error occurred: {exc}"
 
     elapsed_ms = (time.monotonic() - start_time) * 1000
 
-    # 5. Save to MongoDB
+    # 6. Save to MongoDB
     session_id = request.session_id if hasattr(request, "session_id") and request.session_id else str(uuid.uuid4())
     context_summary = {
         "pods": len(pods),
@@ -336,6 +444,8 @@ async def chat_with_agent(
         "services": len(services),
         "incidents": len(scanner.active_incidents),
         "namespaces": namespaces,
+        "rag_sources": rag_sources,
+        "model_used": model_used,
     }
     await chat_repo.save_message(
         session_id=session_id,
@@ -345,4 +455,5 @@ async def chat_with_agent(
         response_time_ms=elapsed_ms,
     )
 
-    return ChatResponse(reply=reply)
+    return ChatResponse(reply=reply, sources=rag_sources, model_used=model_used)
+

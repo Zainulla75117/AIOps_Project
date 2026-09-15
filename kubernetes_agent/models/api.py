@@ -89,11 +89,14 @@ class ChatRequest(BaseModel):
     """Request for the LLM chat."""
     query: str
     session_id: str | None = None
+    model: str = "bedrock"  # "bedrock" (Claude Haiku) or "gemini"
 
 
 class ChatResponse(BaseModel):
     """Response from the LLM chat."""
     reply: str
+    sources: list[str] = Field(default_factory=list)
+    model_used: str = "bedrock"
 
 
 # ---------------------------------------------------------------------------

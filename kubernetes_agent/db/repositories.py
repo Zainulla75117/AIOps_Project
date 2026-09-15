@@ -97,6 +97,7 @@ class ChatRepository:
                     "first_message": {"$min": "$timestamp"},
                     "last_message": {"$max": "$timestamp"},
                     "first_query": {"$first": "$query"},
+                    "session_title": {"$first": "$session_title"},
                 }},
                 {"$sort": {"last_message": -1}},
                 {"$limit": limit},
@@ -107,12 +108,45 @@ class ChatRepository:
                     "first_message": 1,
                     "last_message": 1,
                     "first_query": 1,
+                    "session_title": 1,
                 }},
             ]
             return await coll.aggregate(pipeline).to_list(length=limit)
         except Exception as exc:
             logger.warning("chat_sessions_fetch_failed", error=str(exc))
             return []
+
+    async def delete_session(self, session_id: str) -> int:
+        """Delete all messages for a given session. Returns deleted count."""
+        coll = self._mongo.chat_history
+        if coll is None:
+            return 0
+
+        try:
+            result = await coll.delete_many({"session_id": session_id})
+            logger.info("chat_session_deleted", session_id=session_id, count=result.deleted_count)
+            return result.deleted_count
+        except Exception as exc:
+            logger.warning("chat_session_delete_failed", error=str(exc))
+            return 0
+
+    async def rename_session(self, session_id: str, title: str) -> bool:
+        """Set a custom title on a session by updating the first message."""
+        coll = self._mongo.chat_history
+        if coll is None:
+            return False
+
+        try:
+            # Update all messages in the session with the title metadata
+            result = await coll.update_many(
+                {"session_id": session_id},
+                {"$set": {"session_title": title}},
+            )
+            logger.info("chat_session_renamed", session_id=session_id, title=title)
+            return result.modified_count > 0
+        except Exception as exc:
+            logger.warning("chat_session_rename_failed", error=str(exc))
+            return False
 
 
 class IncidentRepository:

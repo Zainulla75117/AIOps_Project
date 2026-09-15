@@ -37,6 +37,37 @@ async def get_chat_sessions(
     return await chat_repo.get_sessions(limit=limit)
 
 
+@router.delete("/chat/sessions/{session_id}")
+async def delete_chat_session(
+    session_id: str,
+    chat_repo: ChatRepository = Depends(get_chat_repo),
+):
+    """Delete all messages in a chat session."""
+    count = await chat_repo.delete_session(session_id)
+    if count == 0:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"session_id": session_id, "deleted_count": count}
+
+
+@router.put("/chat/sessions/{session_id}")
+async def rename_chat_session(
+    session_id: str,
+    body: dict,
+    chat_repo: ChatRepository = Depends(get_chat_repo),
+):
+    """Rename a chat session."""
+    title = body.get("title", "").strip()
+    if not title:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Title is required")
+    success = await chat_repo.rename_session(session_id, title)
+    if not success:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"session_id": session_id, "title": title}
+
+
 @router.get("/incidents")
 async def get_incident_history(
     limit: int = Query(50, ge=1, le=500),

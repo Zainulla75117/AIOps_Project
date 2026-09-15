@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Cpu } from 'lucide-react';
+import { Cpu, Lock } from 'lucide-react';
 import './Layout.css';
 
 const Layout: React.FC = () => {
@@ -40,6 +40,10 @@ const Layout: React.FC = () => {
         </div>
 
         <div className="nav-right">
+           <a href="/admin/login" className="nav-link admin-nav-link" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+             <Lock size={11} />
+             Admin
+           </a>
            <div className="status-indicator">
              <span className="status-dot online"></span>
              <span className="font-mono text-muted" style={{ fontSize: '11px', textTransform: 'uppercase' }}>Active</span>
