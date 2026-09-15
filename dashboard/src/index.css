@@ -1859,3 +1859,50 @@ code {
   background: rgba(129, 140, 248, 0.06);
 }
 
+/* =========================================
+   Mobile Responsiveness
+   ========================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --space-6: 16px;
+    --space-8: 24px;
+  }
+  
+  /* Generic grid stacking */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Adjust chat layout */
+  .chat-layout {
+    flex-direction: row;
+    position: relative;
+  }
+  
+  .chat-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 100;
+    background: rgba(13, 17, 23, 0.98);
+    backdrop-filter: blur(20px);
+  }
+  
+  .chat-message {
+    max-width: 95%;
+  }
+  
+  .prompt-card {
+    min-width: 200px;
+    max-width: 100%;
+  }
+}
+
+/* Horizontal scrolling for tables on mobile */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
