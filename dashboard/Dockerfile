@@ -11,15 +11,19 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Serve Stage
-FROM nginx:alpine
+# Production Stage
+FROM node:24.11.1-alpine
 
-# Copy the built assets from the builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Overwrite the default Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install serve to run the application
+RUN npm install -g serve
 
-EXPOSE 80
+# Copy only the built assets from the builder stage
+COPY --from=builder /app/dist ./dist
 
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port 3000
+EXPOSE 3000
+
+# Start the app with SPA routing fallback (-s)
+CMD ["serve", "-s", "dist", "-l", "3000"]
