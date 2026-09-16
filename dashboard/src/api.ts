@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // We assume the frontend is served by the backend or proxied via Vite config
-const API_BASE = '/api/v1';
+// You can override this by setting the VITE_API_URL environment variable
+const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE,
