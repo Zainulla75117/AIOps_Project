@@ -97,13 +97,7 @@ function parseFollowUps(text: string): { cleaned: string; followUps: string[] } 
   return { cleaned, followUps };
 }
 
-function formatTime(ts: string): string {
-  try {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
+
 
 // ---- Code Block with Copy ----
 function CodeBlock({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -327,7 +321,6 @@ const Chat: React.FC = () => {
   };
 
   const grouped = groupSessionsByDate(sessions);
-  const isNewSession = !sessions.find(s => s.session_id === activeSessionId);
 
   return (
     <div className="chat-layout">
