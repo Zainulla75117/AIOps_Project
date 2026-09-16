@@ -130,7 +130,14 @@ function CodeBlock({ children, className }: { children: React.ReactNode; classNa
 const Chat: React.FC = () => {
   // Session state
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>(() => crypto.randomUUID());
+  const generateSessionId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'session-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => generateSessionId());
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessionsLoading, setSessionsLoading] = useState(true);
 
@@ -263,7 +270,7 @@ const Chat: React.FC = () => {
 
   // ---- Session actions ----
   const handleNewChat = () => {
-    setActiveSessionId(crypto.randomUUID());
+    setActiveSessionId(generateSessionId());
     setChatMessages([]);
     setChatQuery('');
     inputRef.current?.focus();
