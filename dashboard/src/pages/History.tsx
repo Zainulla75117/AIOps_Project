@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../api';
 import type { ChatMessage, IncidentHistoryItem, ScanHistoryItem } from '../api';
 import ReactMarkdown from 'react-markdown';
@@ -16,7 +16,7 @@ const History: React.FC = () => {
   const [scans, setScans] = useState<ScanHistoryItem[]>([]);
   const [incidentFilter, setIncidentFilter] = useState<string>('all');
 
-  const fetchData = async (tab?: TabKey) => {
+  const fetchData = useCallback(async (tab?: TabKey) => {
     const t = tab || activeTab;
     try {
       if (t === 'chat') {
@@ -35,12 +35,11 @@ const History: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [activeTab, incidentFilter]);
 
   useEffect(() => {
-    setLoading(true);
     fetchData();
-  }, [activeTab, incidentFilter]);
+  }, [fetchData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -108,7 +107,12 @@ const History: React.FC = () => {
           <button
             key={tab.key}
             className={`workloads-tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => {
+              if (activeTab !== tab.key) {
+                setLoading(true);
+                setActiveTab(tab.key);
+              }
+            }}
           >
             {tab.icon}
             {tab.label}
@@ -167,7 +171,12 @@ const History: React.FC = () => {
                     <button
                       key={f}
                       className={`btn ${incidentFilter === f ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setIncidentFilter(f)}
+                      onClick={() => {
+                        if (incidentFilter !== f) {
+                          setLoading(true);
+                          setIncidentFilter(f);
+                        }
+                      }}
                       style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}
                     >
                       {f}

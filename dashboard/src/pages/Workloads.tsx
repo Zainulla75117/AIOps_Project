@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../api';
 import type { WorkloadsSummary, NodeInfo, PodInfo, DeploymentInfo, ServiceInfo, EventInfo } from '../api';
 import { RefreshCw, Server, Box, Layers, Globe, AlertTriangle, Activity } from 'lucide-react';
@@ -17,7 +17,7 @@ const Workloads: React.FC = () => {
   const [services, setServices] = useState<ServiceInfo[]>([]);
   const [events, setEvents] = useState<EventInfo[]>([]);
 
-  const fetchData = async (tab?: TabKey) => {
+  const fetchData = useCallback(async (tab?: TabKey) => {
     const t = tab || activeTab;
     try {
       if (t === 'overview') {
@@ -45,17 +45,19 @@ const Workloads: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
-    setLoading(true);
     fetchData();
     const interval = setInterval(() => fetchData(), 30000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [fetchData]);
 
   const handleTabChange = (tab: TabKey) => {
-    setActiveTab(tab);
+    if (activeTab !== tab) {
+      setLoading(true);
+      setActiveTab(tab);
+    }
   };
 
   const handleRefresh = () => {
