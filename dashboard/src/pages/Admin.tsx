@@ -59,7 +59,7 @@ const Admin: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.getDocuments(token);
-      setDocuments(res.documents);
+      setDocuments(Array.isArray(res.documents) ? res.documents : []);
     } catch (err: any) {
       if (err?.response?.status === 401) {
         localStorage.removeItem('admin_token');
@@ -131,7 +131,7 @@ const Admin: React.FC = () => {
     setPreviewLoading(true);
     try {
       const res = await api.getDocumentChunks(source, token);
-      setPreviewChunks(res.chunks);
+      setPreviewChunks(Array.isArray(res.chunks) ? res.chunks : []);
     } catch {
       setPreviewChunks([]);
     } finally {

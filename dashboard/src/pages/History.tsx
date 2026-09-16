@@ -21,13 +21,13 @@ const History: React.FC = () => {
     try {
       if (t === 'chat') {
         const data = await api.getChatHistory(undefined, 100);
-        setChatMessages(data);
+        setChatMessages(Array.isArray(data) ? data : []);
       } else if (t === 'incidents') {
         const data = await api.getIncidentHistory(100, incidentFilter);
-        setIncidents(data);
+        setIncidents(Array.isArray(data) ? data : []);
       } else if (t === 'scans') {
         const data = await api.getScanHistory(100);
-        setScans(data);
+        setScans(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error(`Failed to fetch ${t} history`, err);
@@ -203,7 +203,7 @@ const History: React.FC = () => {
                       <div style={{ fontWeight: 500, marginBottom: 'var(--space-2)' }}>{inc.what_went_wrong}</div>
                       {inc.affected_resources.length > 0 && (
                         <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
-                          Affected: {inc.affected_resources.map(r => `${r.kind}/${r.name}`).join(', ')}
+                          Affected: {(Array.isArray(inc.affected_resources) ? inc.affected_resources : []).map(r => `${r.kind}/${r.name}`).join(', ')}
                         </div>
                       )}
                       {inc.resolved_at && (

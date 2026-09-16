@@ -25,19 +25,19 @@ const Workloads: React.FC = () => {
         setSummary(data);
       } else if (t === 'nodes') {
         const data = await api.getNodes();
-        setNodes(data);
+        setNodes(Array.isArray(data) ? data : []);
       } else if (t === 'pods') {
         const data = await api.getPods();
-        setPods(data);
+        setPods(Array.isArray(data) ? data : []);
       } else if (t === 'deployments') {
         const data = await api.getDeployments();
-        setDeployments(data);
+        setDeployments(Array.isArray(data) ? data : []);
       } else if (t === 'services') {
         const data = await api.getServices();
-        setServices(data);
+        setServices(Array.isArray(data) ? data : []);
       } else if (t === 'events') {
         const data = await api.getEvents();
-        setEvents(data);
+        setEvents(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error(`Failed to fetch ${t}`, err);
@@ -154,7 +154,7 @@ const Workloads: React.FC = () => {
         ) : (
           <>
             {/* ---- Overview ---- */}
-            {activeTab === 'overview' && summary && (
+            {activeTab === 'overview' && summary && summary.pods && summary.nodes && (
               <div className="workloads-summary-grid">
                 <div className="summary-card">
                   <div className="summary-card-header">
@@ -219,9 +219,9 @@ const Workloads: React.FC = () => {
                     <Activity size={16} className="text-muted" />
                     <span>Namespaces</span>
                   </div>
-                  <div className="summary-card-value">{summary.namespaces_monitored.length}</div>
+                  <div className="summary-card-value">{Array.isArray(summary.namespaces_monitored) ? summary.namespaces_monitored.length : 0}</div>
                   <div className="summary-card-breakdown">
-                    {summary.namespaces_monitored.map(ns => (
+                    {(Array.isArray(summary.namespaces_monitored) ? summary.namespaces_monitored : []).map(ns => (
                       <span key={ns} className="text-secondary">{ns}</span>
                     ))}
                   </div>

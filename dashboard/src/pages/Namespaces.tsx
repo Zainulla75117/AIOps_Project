@@ -40,7 +40,7 @@ const Namespaces: React.FC = () => {
   if (loading) return <div className="text-secondary p-6 font-mono text-sm">LOADING SCOPE...</div>;
   if (!settings) return <div className="text-critical p-6 font-mono text-sm">ERR_LOAD_SETTINGS</div>;
 
-  const nsList = Object.values(settings.namespaces)
+  const nsList = Object.values(settings.namespaces || {})
     .filter(ns => ns.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (a.is_system && !b.is_system) return 1;
