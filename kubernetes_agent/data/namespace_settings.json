@@ -4,15 +4,15 @@
       "name": "default",
       "enabled": true,
       "is_system": false,
-      "discovered_at": "2026-09-04T18:38:18.200386",
-      "enabled_at": "2026-09-04T18:38:18.200374",
+      "discovered_at": "2026-09-03T17:43:30.724795",
+      "enabled_at": "2026-09-03T17:43:30.724785",
       "disabled_at": null
     },
     "kube-system": {
       "name": "kube-system",
       "enabled": false,
       "is_system": true,
-      "discovered_at": "2026-09-04T18:38:18.201026",
+      "discovered_at": "2026-09-03T17:43:30.724834",
       "enabled_at": null,
       "disabled_at": null
     },
@@ -20,7 +20,7 @@
       "name": "kube-public",
       "enabled": false,
       "is_system": true,
-      "discovered_at": "2026-09-04T18:38:18.201033",
+      "discovered_at": "2026-09-03T17:43:30.724839",
       "enabled_at": null,
       "disabled_at": null
     },
@@ -28,7 +28,7 @@
       "name": "kube-node-lease",
       "enabled": false,
       "is_system": true,
-      "discovered_at": "2026-09-04T18:38:18.201037",
+      "discovered_at": "2026-09-03T17:43:30.724843",
       "enabled_at": null,
       "disabled_at": null
     },
@@ -36,10 +36,10 @@
       "name": "aiops-system",
       "enabled": false,
       "is_system": true,
-      "discovered_at": "2026-09-04T18:38:18.201044",
-      "enabled_at": null,
-      "disabled_at": null
+      "discovered_at": "2026-09-03T17:43:30.724845",
+      "enabled_at": "2026-09-03T17:43:53.384734",
+      "disabled_at": "2026-09-03T17:43:55.560765"
     }
   },
-  "last_updated": "2026-09-04T18:38:18.201049"
+  "last_updated": "2026-09-03T17:43:55.560771"
 }

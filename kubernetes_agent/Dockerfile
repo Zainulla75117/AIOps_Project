@@ -32,8 +32,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Switch to non-root user
 USER aiops
 
-# Copy Python source code. Note: context should be the root of the project
-COPY --chown=aiops:aiops kubernetes_agent/ ./kubernetes_agent/
+# Copy Python source code. Note: context is now the kubernetes_agent directory itself
+COPY --chown=aiops:aiops . ./kubernetes_agent/
 
 # Create data and db directories
 RUN mkdir -p data db

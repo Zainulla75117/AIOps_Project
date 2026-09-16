@@ -3,9 +3,9 @@ import { api } from '../api';
 import type { ChatSession } from '../api';
 import ReactMarkdown from 'react-markdown';
 import {
-  MessageSquare, Send, Link2, Sparkles, FileText, ChevronDown,
-  Plus, Trash2, Pencil, X, Check, PanelLeftClose, PanelLeft,
-  Cpu, Bot, User, Copy, CheckCircle, Clock, MoreHorizontal,
+  MessageSquare, Send, Link2, FileText, ChevronDown,
+  Plus, Trash2, Pencil, PanelLeftClose, PanelLeft,
+  Cpu, Bot, User, Copy, CheckCircle, MoreHorizontal,
   Search, AlertTriangle, AlertCircle, BarChart3, RefreshCcw, ClipboardList
 } from 'lucide-react';
 
