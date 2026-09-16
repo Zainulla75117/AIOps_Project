@@ -34,19 +34,23 @@ class K8sClient:
 
     def connect(self) -> None:
         """Load K8s configuration and create API clients."""
-        if self._cfg.k8s_in_cluster:
-            logger.info("k8s_connect", mode="in_cluster")
-            k8s_config.load_incluster_config()
-        else:
-            kubeconfig = self._cfg.k8s_kubeconfig
-            logger.info("k8s_connect", mode="kubeconfig", path=kubeconfig)
-            k8s_config.load_kube_config(config_file=kubeconfig)
-
-        self._api_client = client.ApiClient()
-        self._core_v1 = client.CoreV1Api(self._api_client)
-        self._apps_v1 = client.AppsV1Api(self._api_client)
-        self._batch_v1 = client.BatchV1Api(self._api_client)
-        logger.info("k8s_connected")
+        try:
+            if self._cfg.k8s_in_cluster:
+                logger.info("k8s_connect", mode="in_cluster")
+                k8s_config.load_incluster_config()
+            else:
+                kubeconfig = self._cfg.k8s_kubeconfig
+                logger.info("k8s_connect", mode="kubeconfig", path=kubeconfig)
+                k8s_config.load_kube_config(config_file=kubeconfig)
+    
+            self._api_client = client.ApiClient()
+            self._core_v1 = client.CoreV1Api(self._api_client)
+            self._apps_v1 = client.AppsV1Api(self._api_client)
+            self._batch_v1 = client.BatchV1Api(self._api_client)
+            logger.info("k8s_connected")
+        except Exception as exc:
+            logger.error("k8s_connect_failed", error=str(exc))
+            self._api_client = None
 
     def close(self) -> None:
         """Close the underlying API client."""
@@ -60,21 +64,24 @@ class K8sClient:
     def core_v1(self) -> client.CoreV1Api:
         if self._core_v1 is None:
             self.connect()
-        assert self._core_v1 is not None
+        if self._core_v1 is None:
+            raise RuntimeError("Kubernetes client is not connected.")
         return self._core_v1
 
     @property
     def apps_v1(self) -> client.AppsV1Api:
         if self._apps_v1 is None:
             self.connect()
-        assert self._apps_v1 is not None
+        if self._apps_v1 is None:
+            raise RuntimeError("Kubernetes client is not connected.")
         return self._apps_v1
 
     @property
     def batch_v1(self) -> client.BatchV1Api:
         if self._batch_v1 is None:
             self.connect()
-        assert self._batch_v1 is not None
+        if self._batch_v1 is None:
+            raise RuntimeError("Kubernetes client is not connected.")
         return self._batch_v1
 
     # ---- Health check -----------------------------------------------------
