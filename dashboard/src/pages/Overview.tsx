@@ -79,7 +79,7 @@ const Overview: React.FC = () => {
               color: status.active_incidents > 0 ? 'var(--status-critical)' : 'var(--text-primary)',
               letterSpacing: '-0.05em'
             }}>
-              {status.active_incidents.toString().padStart(2, '0')}
+              {(status.active_incidents || 0).toString().padStart(2, '0')}
             </div>
           </div>
 
@@ -122,10 +122,10 @@ const Overview: React.FC = () => {
         {/* Right: Namespace Ticker */}
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ padding: 'var(--space-4) var(--space-6)', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span className="text-muted font-mono" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>MONITORED SCOPE ({status.monitored_namespaces.length})</span>
+            <span className="text-muted font-mono" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>MONITORED SCOPE ({(status.monitored_namespaces || []).length})</span>
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {status.monitored_namespaces.map(ns => (
+            {(status.monitored_namespaces || []).map(ns => (
               <div key={ns} style={{ 
                 padding: 'var(--space-4) var(--space-6)', 
                 borderBottom: '1px solid var(--border-subtle)',
@@ -137,7 +137,7 @@ const Overview: React.FC = () => {
                 <span className="status-dot" style={{ backgroundColor: 'var(--status-success)' }}></span>
               </div>
             ))}
-            {status.monitored_namespaces.length === 0 && (
+            {(status.monitored_namespaces || []).length === 0 && (
               <div className="text-muted" style={{ padding: 'var(--space-6)', fontSize: '0.875rem' }}>No namespaces configured.</div>
             )}
           </div>
