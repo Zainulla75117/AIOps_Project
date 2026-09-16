@@ -55,8 +55,29 @@ class MongoClient:
         self._client = client
         self._db = client[db_name]
 
+        # Ensure required collections exist
+        await self._ensure_collections()
+
         # Create indexes
         await self._ensure_indexes()
+
+    async def _ensure_collections(self) -> None:
+        """Create required collections if they don't already exist."""
+        if self._db is None:
+            return
+
+        required_collections = ["chat_history", "incidents", "scan_history"]
+
+        try:
+            existing = await self._db.list_collection_names()
+            for col_name in required_collections:
+                if col_name not in existing:
+                    await self._db.create_collection(col_name)
+                    logger.info("mongodb_collection_created", collection=col_name)
+                else:
+                    logger.info("mongodb_collection_exists", collection=col_name)
+        except Exception as exc:
+            logger.warning("mongodb_collection_creation_failed", error=str(exc))
 
     async def _ensure_indexes(self) -> None:
         """Create TTL and query-performance indexes."""
