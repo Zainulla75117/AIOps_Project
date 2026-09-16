@@ -1,0 +1,19 @@
+server {
+    listen       80;
+    server_name  localhost;
+
+    # Serve your static React/Vite files
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy /api to your backend
+    location /api/ {
+        # BACKEND_URL will be replaced at runtime
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}

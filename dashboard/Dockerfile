@@ -1,29 +1,33 @@
-# Build Stage
+# ---------- Build stage ----------
 FROM node:24.11.1-alpine AS builder
 
 WORKDIR /app
 
 # Install dependencies
-COPY package.json package-lock.json ./
+COPY package*.json ./
 RUN npm ci
 
-# Copy source and build
+# Copy source code
 COPY . .
+
+# Create production build
 RUN npm run build
 
-# Production Stage
-FROM node:24.11.1-alpine
 
-WORKDIR /app
+# ---------- Production stage ----------
+FROM nginx:alpine
 
-# Copy necessary files from the builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/vite.config.ts ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
+# Remove default nginx files
+RUN rm -rf /usr/share/nginx/html/*
 
-# Vite preview runs on 4173
-EXPOSE 4173
+# Copy Vite production build
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Start the app using Vite's preview server which maintains the proxy logic
-CMD ["npm", "run", "preview"]
+# Copy the nginx template
+COPY default.conf.template /etc/nginx/templates/default.conf.template
+
+# Expose HTTP
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
