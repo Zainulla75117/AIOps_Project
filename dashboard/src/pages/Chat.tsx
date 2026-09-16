@@ -165,7 +165,7 @@ const Chat: React.FC = () => {
     try {
       setSessionsLoading(true);
       const data = await api.getChatSessions(50);
-      setSessions(data);
+      setSessions(Array.isArray(data) ? data : []);
     } catch { /* ignore */ }
     finally { setSessionsLoading(false); }
   }, []);
@@ -203,7 +203,7 @@ const Chat: React.FC = () => {
   // When active session changes, load its messages
   useEffect(() => {
     // Check if this is an existing session
-    const existing = sessions.find(s => s.session_id === activeSessionId);
+    const existing = (Array.isArray(sessions) ? sessions : []).find(s => s.session_id === activeSessionId);
     if (existing) {
       loadSessionMessages(activeSessionId);
     } else {
@@ -583,7 +583,7 @@ const Chat: React.FC = () => {
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button onClick={() => {
-            const s = sessions.find(s => s.session_id === contextMenu.sessionId);
+            const s = (Array.isArray(sessions) ? sessions : []).find(s => s.session_id === contextMenu.sessionId);
             if (s) handleStartRename(s);
           }}>
             <Pencil size={12} />
