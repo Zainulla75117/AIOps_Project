@@ -209,6 +209,19 @@ export interface ScanHistoryItem {
   active_incidents: number;
 }
 
+export interface IngestionJob {
+  job_id: string;
+  filename: string;
+  status: 'processing' | 'completed' | 'failed';
+  total_rows: number;
+  processed_rows: number;
+  chunks_created: number;
+  current_table: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- API Functions ----
 
 export const api = {
@@ -318,7 +331,7 @@ export const api = {
     return res.data;
   },
 
-  uploadDocument: async (file: File, token: string): Promise<{ source: string; chunks_created: number; message: string }> => {
+  uploadDocument: async (file: File, token: string): Promise<{ source: string; job_id: string | null; chunks_created: number; message: string }> => {
     const formData = new FormData();
     formData.append('file', file);
     const res = await apiClient.post('/admin/documents/upload', formData, {
@@ -346,6 +359,13 @@ export const api = {
 
   getDocumentChunks: async (source: string, token: string): Promise<{ source: string; chunks: Array<{ index: number; content: string; metadata: Record<string, any>; length: number }>; total: number }> => {
     const res = await apiClient.get(`/admin/documents/${encodeURIComponent(source)}/chunks`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  getIngestionProgress: async (token: string): Promise<{ jobs: IngestionJob[] }> => {
+    const res = await apiClient.get('/admin/ingestion/progress', {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     return res.data;

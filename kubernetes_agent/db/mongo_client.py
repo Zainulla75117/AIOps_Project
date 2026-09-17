@@ -66,7 +66,7 @@ class MongoClient:
         if self._db is None:
             return
 
-        required_collections = ["chat_history", "incidents", "scan_history"]
+        required_collections = ["chat_history", "incidents", "scan_history", "ingestion_jobs"]
 
         try:
             existing = await self._db.list_collection_names()
@@ -102,6 +102,11 @@ class MongoClient:
             scans = self._db.scan_history
             await scans.create_index("timestamp", expireAfterSeconds=90 * 24 * 3600)
             await scans.create_index([("timestamp", -1)])
+
+            # ingestion_jobs: TTL 24h on updated_at for auto-cleanup
+            jobs = self._db.ingestion_jobs
+            await jobs.create_index("updated_at", expireAfterSeconds=24 * 3600)
+            await jobs.create_index("status")
 
             logger.info("mongodb_indexes_created")
         except Exception as exc:
@@ -145,6 +150,13 @@ class MongoClient:
         if self._db is None:
             return None
         return self._db.scan_history
+
+    @property
+    def ingestion_jobs(self):
+        """The ingestion_jobs collection."""
+        if self._db is None:
+            return None
+        return self._db.ingestion_jobs
 
 
 # Module-level singleton

@@ -78,7 +78,7 @@ class AgentConfig(BaseSettings):
     chroma_persist_dir: str = "db/chroma_db"
     chroma_collection_name: str = "aiops_documents"
     rag_chunk_size: int = 1000
-    rag_chunk_overlap: int = 100
+    rag_chunk_overlap: int = 50
     rag_top_k: int = 5
     rag_relevance_threshold: float = 0.5  # Only inject docs above this relevance score
 

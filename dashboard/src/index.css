@@ -1725,6 +1725,209 @@ code {
   opacity: 1;
 }
 
+/* ===== Ingestion Progress ===== */
+
+.admin-ingestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-ingestion-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: admin-ingestion-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.4s ease, background 0.4s ease, opacity 0.5s ease;
+}
+
+@keyframes admin-ingestion-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-ingestion-card-completed {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.admin-ingestion-card-failed {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+/* Header row */
+.admin-ingestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-ingestion-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.admin-ingestion-file .font-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-ingestion-status {
+  flex-shrink: 0;
+}
+
+/* Status badges */
+.admin-ingestion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-ingestion-badge-processing {
+  color: var(--status-info);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.admin-ingestion-badge-completed {
+  color: var(--status-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.admin-ingestion-badge-failed {
+  color: var(--status-critical);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Progress bar */
+.admin-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--border-subtle);
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-muted), var(--accent));
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.admin-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15));
+  animation: admin-progress-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes admin-progress-shimmer {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.admin-progress-fill-indeterminate {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-muted) 20%,
+    var(--accent) 50%,
+    var(--accent-muted) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-progress-pulse 2s ease-in-out infinite;
+}
+
+.admin-progress-fill-indeterminate::after {
+  display: none;
+}
+
+@keyframes admin-progress-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.admin-progress-fill-completed {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.4), var(--status-success));
+}
+
+.admin-progress-fill-completed::after {
+  display: none;
+}
+
+.admin-progress-fill-failed {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.4), var(--status-critical));
+}
+
+.admin-progress-fill-failed::after {
+  display: none;
+}
+
+/* Meta / stats row */
+.admin-ingestion-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.admin-ingestion-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.admin-ingestion-stat-value {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.admin-ingestion-stat-time {
+  margin-left: auto;
+}
+
+.admin-ingestion-stat-error {
+  color: var(--status-critical);
+  font-size: 10px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 /* ===== Chat LLM Model Selector ===== */
 .chat-model-selector {
   position: relative;

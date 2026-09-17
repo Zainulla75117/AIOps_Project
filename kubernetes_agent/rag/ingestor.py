@@ -184,64 +184,141 @@ def ingest_file(
     return {"chunks_created": len(chunks)}
 
 
-def ingest_file_background(
+async def ingest_file_background(
     file_path: str,
     filename: str,
+    job_id: str,
     cfg: AgentConfig | None = None,
 ):
-    """Background task to ingest a file with memory optimization.
-    
+    """Background task to ingest a file with progress tracking via MongoDB.
+
     Args:
         file_path: Temporary path to the saved file on disk.
         filename: Original filename for source metadata.
+        job_id: Ingestion job ID for progress tracking.
         cfg: Optional config override.
     """
     cfg = cfg or get_config()
     ext = Path(filename).suffix.lower()
-    
-    logger.info("starting_background_ingestion", filename=filename)
-    
+
+    logger.info("starting_background_ingestion", filename=filename, job_id=job_id)
+
+    # Get the MongoDB database for progress updates
+    from kubernetes_agent.api.dependencies import get_mongo
+    from kubernetes_agent.db import ingestion_progress
+
+    try:
+        mongo = get_mongo()
+        db = mongo.db if mongo else None
+    except RuntimeError:
+        db = None
+
     try:
         # Currently, only .db supports streaming batch processing.
         # Other files fall back to reading bytes directly.
         if ext == ".db":
             splitter = _get_splitter(cfg)
             total_chunks = 0
-            
+
+            # Count total rows first for accurate progress
+            total_rows = _count_sqlite_rows(file_path)
+            if db is not None:
+                await ingestion_progress.update_progress(
+                    db, job_id, total_rows=total_rows
+                )
+
+            processed_rows = 0
+
             # Stream documents in batches from the database
-            for batch_docs in _stream_sqlite(file_path, filename, batch_size=2000):
+            for batch_docs, table_name in _stream_sqlite_with_table(file_path, filename, batch_size=2000):
                 if not batch_docs:
                     continue
-                    
+
+                # Update current table
+                if db is not None:
+                    await ingestion_progress.update_progress(
+                        db, job_id, current_table=table_name
+                    )
+
                 # Split this specific batch
                 chunks = splitter.split_documents(batch_docs)
                 for chunk in chunks:
                     chunk.metadata.setdefault("source", filename)
-                
+
                 # Add to vector store
                 if chunks:
                     vector_store.add_documents(chunks, cfg)
                     total_chunks += len(chunks)
-                    logger.debug("inserted_chunk_batch", filename=filename, batch_chunks=len(chunks))
-                    
+
+                # Update progress
+                processed_rows += len(batch_docs)
+                if db is not None:
+                    await ingestion_progress.update_progress(
+                        db, job_id,
+                        processed_rows=processed_rows,
+                        chunks_created=total_chunks,
+                    )
+
+                logger.debug(
+                    "inserted_chunk_batch",
+                    filename=filename,
+                    batch_chunks=len(chunks),
+                    processed_rows=processed_rows,
+                    total_rows=total_rows,
+                )
+
+            # Mark completed
+            if db is not None:
+                await ingestion_progress.mark_completed(db, job_id, total_chunks)
+
             logger.info("background_ingestion_complete", filename=filename, total_chunks=total_chunks)
-            
+
         else:
             # For non-DB files, fall back to standard in-memory ingestion
             with open(file_path, 'rb') as f:
                 file_bytes = f.read()
             result = ingest_file(file_bytes, filename, cfg)
+
+            # Mark completed
+            if db is not None:
+                await ingestion_progress.mark_completed(db, job_id, result["chunks_created"])
+
             logger.info("background_ingestion_complete", filename=filename, total_chunks=result["chunks_created"])
-            
+
     except Exception as exc:
         logger.error("background_ingestion_failed", filename=filename, error=str(exc))
+        if db is not None:
+            await ingestion_progress.mark_failed(db, job_id, str(exc))
     finally:
         # Always clean up the temporary file
         Path(file_path).unlink(missing_ok=True)
         logger.debug("cleaned_up_temp_file", path=file_path)
 
-def _stream_sqlite(file_path: str, source_name: str, batch_size: int = 1000):
-    """Generator that yields batches of Documents from a SQLite database without loading everything into RAM."""
+
+def _count_sqlite_rows(file_path: str) -> int:
+    """Count total rows across all tables in a SQLite database."""
+    total = 0
+    try:
+        conn = sqlite3.connect(file_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row[0] for row in cursor.fetchall()]
+
+        for table_name in tables:
+            try:
+                cursor.execute(f"SELECT COUNT(*) FROM [{table_name}]")  # noqa: S608
+                total += cursor.fetchone()[0]
+            except Exception:
+                pass
+
+        conn.close()
+    except Exception as exc:
+        logger.warning("sqlite_row_count_failed", error=str(exc))
+    return total
+
+
+def _stream_sqlite_with_table(file_path: str, source_name: str, batch_size: int = 1000):
+    """Generator that yields (batch_docs, table_name) tuples from a SQLite database."""
     try:
         conn = sqlite3.connect(file_path)
         cursor = conn.cursor()
@@ -251,16 +328,16 @@ def _stream_sqlite(file_path: str, source_name: str, batch_size: int = 1000):
 
         for table_name in tables:
             try:
-                # Use a separate cursor for querying the table to avoid closing the outer cursor
+                # Use a separate cursor for querying the table
                 table_cursor = conn.cursor()
                 table_cursor.execute(f"SELECT * FROM [{table_name}]")  # noqa: S608
                 columns = [desc[0] for desc in table_cursor.description]
-                
+
                 while True:
                     rows = table_cursor.fetchmany(batch_size)
                     if not rows:
                         break
-                        
+
                     batch_docs = []
                     for row in rows:
                         row_text = "\n".join(
@@ -271,13 +348,20 @@ def _stream_sqlite(file_path: str, source_name: str, batch_size: int = 1000):
                                 page_content=row_text,
                                 metadata={"source": source_name, "table": table_name},
                             ))
-                    
+
                     if batch_docs:
-                        yield batch_docs
-                        
+                        yield (batch_docs, table_name)
+
             except Exception as exc:
                 logger.warning("sqlite_table_stream_failed", table=table_name, error=str(exc))
 
         conn.close()
     except Exception as exc:
         logger.error("sqlite_stream_failed", error=str(exc))
+
+
+# Keep the old generator for backward compatibility
+def _stream_sqlite(file_path: str, source_name: str, batch_size: int = 1000):
+    """Generator that yields batches of Documents from a SQLite database without loading everything into RAM."""
+    for batch_docs, _ in _stream_sqlite_with_table(file_path, source_name, batch_size):
+        yield batch_docs

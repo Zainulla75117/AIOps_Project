@@ -5,7 +5,9 @@ All document routes are protected by the admin JWT token.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, BackgroundTasks
+import asyncio
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 
 from kubernetes_agent.api.auth import (
     create_access_token,
@@ -13,6 +15,8 @@ from kubernetes_agent.api.auth import (
     verify_password,
 )
 from kubernetes_agent.config import AgentConfig, get_config
+from kubernetes_agent.db import ingestion_progress
+from kubernetes_agent.api.dependencies import get_mongo
 from kubernetes_agent.rag import ingestor, vector_store
 from kubernetes_agent.rag.ingestor import SUPPORTED_EXTENSIONS
 from kubernetes_agent.utils.logging import get_logger
@@ -58,7 +62,7 @@ async def admin_login(
 # ---- Document Management (Protected) ----
 
 @router.post("/documents/upload", dependencies=[Depends(verify_admin_token)], status_code=status.HTTP_202_ACCEPTED)
-async def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...)):
     """Upload and schedule a document for RAG ingestion in the background."""
     if not file.filename:
         raise HTTPException(
@@ -87,14 +91,26 @@ async def upload_document(background_tasks: BackgroundTasks, file: UploadFile = 
         os.unlink(temp_path)
         logger.error("file_save_failed", error=str(exc))
         raise HTTPException(status_code=500, detail="Failed to save uploaded file")
-        
-    logger.info("document_upload_accepted", filename=file.filename, temp_path=temp_path)
+
+    # Create a progress tracking job in MongoDB
+    job_id = None
+    try:
+        mongo = get_mongo()
+        if mongo and mongo.db:
+            job_id = await ingestion_progress.create_job(mongo.db, file.filename)
+    except Exception as exc:
+        logger.warning("ingestion_job_creation_failed", error=str(exc))
+
+    logger.info("document_upload_accepted", filename=file.filename, temp_path=temp_path, job_id=job_id)
     
-    # Delegate to the ingestor background task
-    background_tasks.add_task(ingestor.ingest_file_background, temp_path, file.filename)
+    # Launch async background task — allows await-based progress updates
+    asyncio.create_task(
+        ingestor.ingest_file_background(temp_path, file.filename, job_id or "unknown")
+    )
     
     return {
         "source": file.filename,
+        "job_id": job_id,
         "chunks_created": 0,
         "message": f"Processing of {file.filename} started in background.",
     }
@@ -155,3 +171,47 @@ async def get_document_chunks(source: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         )
+
+
+# ---- Ingestion Progress (Protected) ----
+
+@router.get("/ingestion/progress", dependencies=[Depends(verify_admin_token)])
+async def get_ingestion_progress():
+    """Return all active + recently completed/failed ingestion jobs."""
+    try:
+        mongo = get_mongo()
+    except RuntimeError:
+        return {"jobs": []}
+
+    if not mongo or not mongo.db:
+        return {"jobs": []}
+    
+    try:
+        jobs = await ingestion_progress.get_active_jobs(mongo.db)
+        return {"jobs": jobs}
+    except Exception as exc:
+        logger.error("ingestion_progress_fetch_failed", error=str(exc))
+        return {"jobs": []}
+
+
+@router.get("/ingestion/progress/{job_id}", dependencies=[Depends(verify_admin_token)])
+async def get_ingestion_job(job_id: str):
+    """Return progress for a single ingestion job."""
+    try:
+        mongo = get_mongo()
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="MongoDB not available")
+
+    if not mongo or not mongo.db:
+        raise HTTPException(status_code=503, detail="MongoDB not available")
+    
+    try:
+        job = await ingestion_progress.get_job(mongo.db, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return job
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("ingestion_job_fetch_failed", job_id=job_id, error=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc))
