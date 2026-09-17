@@ -205,7 +205,7 @@ async def ingest_file_background(
 
     # Get the MongoDB database for progress updates
     from kubernetes_agent.api.dependencies import get_mongo
-    from kubernetes_agent.db import ingestion_progress as ingestion_progress
+    from kubernetes_agent.database import ingestion_progress as ingestion_progress
 
     try:
         mongo = get_mongo()

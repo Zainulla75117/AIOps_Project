@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from kubernetes_agent.db.mongo_client import MongoClient
+from kubernetes_agent.database.mongo_client import MongoClient
 from kubernetes_agent.utils.logging import get_logger
 
 logger = get_logger(__name__)

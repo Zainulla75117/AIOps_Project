@@ -15,8 +15,8 @@ from kubernetes_agent.collectors.node_collector import NodeCollector
 from kubernetes_agent.collectors.pod_collector import PodCollector
 from kubernetes_agent.collectors.service_collector import ServiceCollector
 from kubernetes_agent.config import AgentConfig, get_config
-from kubernetes_agent.db.mongo_client import MongoClient
-from kubernetes_agent.db.repositories import ChatRepository, IncidentRepository, ScanRepository
+from kubernetes_agent.database.mongo_client import MongoClient
+from kubernetes_agent.database.repositories import ChatRepository, IncidentRepository, ScanRepository
 from kubernetes_agent.engine.scanner import Scanner
 from kubernetes_agent.utils.k8s_client import K8sClient, get_k8s_client
 

@@ -24,7 +24,7 @@ from kubernetes_agent.collectors.node_collector import NodeCollector
 from kubernetes_agent.collectors.pod_collector import PodCollector
 from kubernetes_agent.collectors.service_collector import ServiceCollector
 from kubernetes_agent.config import AgentConfig
-from kubernetes_agent.db.repositories import ChatRepository
+from kubernetes_agent.database.repositories import ChatRepository
 from kubernetes_agent.engine.scanner import Scanner
 from kubernetes_agent.analysis.gemini_provider import GeminiProvider
 from kubernetes_agent.models.api import AgentStatusResponse, ScanTriggerResponse, ChatRequest, ChatResponse

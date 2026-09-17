@@ -15,7 +15,7 @@ from kubernetes_agent.collectors.node_collector import NodeCollector
 from kubernetes_agent.collectors.pod_collector import PodCollector
 from kubernetes_agent.collectors.service_collector import ServiceCollector
 from kubernetes_agent.config import AgentConfig, get_config
-from kubernetes_agent.db.repositories import IncidentRepository, ScanRepository
+from kubernetes_agent.database.repositories import IncidentRepository, ScanRepository
 from kubernetes_agent.detectors.registry import DetectorRegistry
 from kubernetes_agent.engine.investigation import InvestigationEngine
 from kubernetes_agent.models.incident import IncidentReport

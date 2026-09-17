@@ -9,7 +9,7 @@ from kubernetes_agent.api.dependencies import (
     get_incident_repo,
     get_scan_repo,
 )
-from kubernetes_agent.db.repositories import (
+from kubernetes_agent.database.repositories import (
     ChatRepository,
     IncidentRepository,
     ScanRepository,
