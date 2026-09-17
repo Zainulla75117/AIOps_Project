@@ -7,6 +7,7 @@ Supports PDF, TXT, MD, CSV, and SQLite (.db) files.
 from __future__ import annotations
 
 import csv
+import gc
 import io
 import sqlite3
 import tempfile
@@ -214,76 +215,71 @@ async def ingest_file_background(
         db = None
 
     try:
-        # Currently, only .db supports streaming batch processing.
-        # Other files fall back to reading bytes directly.
-        if ext == ".db":
-            splitter = _get_splitter(cfg)
-            total_chunks = 0
+        splitter = _get_splitter(cfg)
+        total_chunks = 0
+        processed_rows = 0
+        total_rows = 0
 
-            # Count total rows first for accurate progress
+        if ext == ".db":
             total_rows = _count_sqlite_rows(file_path)
             if db is not None:
-                await ingestion_progress.update_progress(
-                    db, job_id, total_rows=total_rows
-                )
-
-            processed_rows = 0
-
-            # Stream documents in batches from the database
-            for batch_docs, table_name in _stream_sqlite_with_table(file_path, filename, batch_size=2000):
-                if not batch_docs:
-                    continue
-
-                # Update current table
-                if db is not None:
-                    await ingestion_progress.update_progress(
-                        db, job_id, current_table=table_name
-                    )
-
-                # Split this specific batch
-                chunks = splitter.split_documents(batch_docs)
-                for chunk in chunks:
-                    chunk.metadata.setdefault("source", filename)
-
-                # Add to vector store
-                if chunks:
-                    vector_store.add_documents(chunks, cfg)
-                    total_chunks += len(chunks)
-
-                # Update progress
-                processed_rows += len(batch_docs)
-                if db is not None:
-                    await ingestion_progress.update_progress(
-                        db, job_id,
-                        processed_rows=processed_rows,
-                        chunks_created=total_chunks,
-                    )
-
-                logger.debug(
-                    "inserted_chunk_batch",
-                    filename=filename,
-                    batch_chunks=len(chunks),
-                    processed_rows=processed_rows,
-                    total_rows=total_rows,
-                )
-
-            # Mark completed
-            if db is not None:
-                await ingestion_progress.mark_completed(db, job_id, total_chunks)
-
-            logger.info("background_ingestion_complete", filename=filename, total_chunks=total_chunks)
-
+                await ingestion_progress.update_progress(db, job_id, total_rows=total_rows)
+            stream = _stream_sqlite_with_table(file_path, filename, batch_size=250)
+        elif ext == ".csv":
+            stream = ((batch, None) for batch in _stream_csv(file_path, filename, batch_size=250))
+        elif ext == ".pdf":
+            stream = ((batch, None) for batch in _stream_pdf(file_path, filename, batch_size=20))
+        elif ext in (".txt", ".md"):
+            stream = ((batch, None) for batch in _stream_text(file_path, filename))
         else:
-            # For non-DB files, fall back to standard in-memory ingestion
-            with open(file_path, 'rb') as f:
-                file_bytes = f.read()
-            result = ingest_file(file_bytes, filename, cfg)
+            raise ValueError(f"Unsupported file type: {ext}")
 
-            # Mark completed
+        for batch_tuple in stream:
+            batch_docs = batch_tuple[0]
+            table_name = batch_tuple[1] if len(batch_tuple) > 1 else None
+
+            if not batch_docs:
+                continue
+
+            if db is not None and table_name:
+                await ingestion_progress.update_progress(db, job_id, current_table=table_name)
+
+            chunks = splitter.split_documents(batch_docs)
+            for chunk in chunks:
+                chunk.metadata.setdefault("source", filename)
+
+            if chunks:
+                # Micro-batching vector store insertions to avoid Bedrock rate limits
+                for i in range(0, len(chunks), 50):
+                    micro_batch = chunks[i:i + 50]
+                    vector_store.add_documents(micro_batch, cfg)
+                    total_chunks += len(micro_batch)
+
+            processed_rows += len(batch_docs)
             if db is not None:
-                await ingestion_progress.mark_completed(db, job_id, result["chunks_created"])
+                await ingestion_progress.update_progress(
+                    db, job_id,
+                    processed_rows=processed_rows,
+                    chunks_created=total_chunks,
+                )
 
-            logger.info("background_ingestion_complete", filename=filename, total_chunks=result["chunks_created"])
+            logger.debug(
+                "inserted_chunk_batch",
+                filename=filename,
+                batch_chunks=len(chunks),
+                processed_rows=processed_rows,
+                total_rows=total_rows if ext == ".db" else None,
+            )
+            
+            # Aggressive memory cleanup
+            del batch_docs
+            del chunks
+            gc.collect()
+
+        if db is not None:
+            await ingestion_progress.mark_completed(db, job_id, total_chunks)
+
+        logger.info("background_ingestion_complete", filename=filename, total_chunks=total_chunks)
 
     except Exception as exc:
         logger.error("background_ingestion_failed", filename=filename, error=str(exc))
