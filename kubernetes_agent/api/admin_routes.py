@@ -15,7 +15,7 @@ from kubernetes_agent.api.auth import (
     verify_password,
 )
 from kubernetes_agent.config import AgentConfig, get_config
-from kubernetes_agent.db import ingestion_progress
+import kubernetes_agent.db.ingestion_progress as ingestion_progress
 from kubernetes_agent.api.dependencies import get_mongo
 from kubernetes_agent.rag import ingestor, vector_store
 from kubernetes_agent.rag.ingestor import SUPPORTED_EXTENSIONS
