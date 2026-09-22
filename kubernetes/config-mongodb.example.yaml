@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secrets-aiops
+  namespace: aiops-system
+type: Opaque
+
+stringData:
+  MONGO_INITDB_ROOT_USERNAME : "admin"
+  MONGO_INITDB_ROOT_PASSWORD : "your-mongodb-password"

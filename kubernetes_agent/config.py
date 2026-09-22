@@ -87,8 +87,20 @@ class AgentConfig(BaseSettings):
     jwt_secret: str = "change-me-in-production"
 
     # ---- MongoDB ----
-    mongo_uri: str = "mongodb://localhost:27017"
+    mongo_host: str = "localhost"
+    mongo_port: int = 27017
+    mongo_user: str | None = None
+    mongo_password: str | None = None
     mongo_db_name: str = "aiops_agent"
+
+    @property
+    def mongo_uri(self) -> str:
+        if self.mongo_user and self.mongo_password:
+            import urllib.parse
+            user = urllib.parse.quote_plus(self.mongo_user)
+            pwd = urllib.parse.quote_plus(self.mongo_password)
+            return f"mongodb://{user}:{pwd}@{self.mongo_host}:{self.mongo_port}/{self.mongo_db_name}?authSource=admin"
+        return f"mongodb://{self.mongo_host}:{self.mongo_port}/{self.mongo_db_name}"
 
     # ---- API ----
     api_host: str = "0.0.0.0"

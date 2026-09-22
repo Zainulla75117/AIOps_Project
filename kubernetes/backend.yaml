@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aiops-agent
+  name: aiops-backend
   namespace: aiops-system
   labels:
-    app.kubernetes.io/name: aiops-agent
+    app.kubernetes.io/name: aiops-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: aiops-agent
+      app.kubernetes.io/name: aiops-backend
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: aiops-agent
+        app.kubernetes.io/name: aiops-backend
     spec:
       serviceAccountName: aiops-agent-sa
       securityContext:
@@ -21,8 +21,15 @@ spec:
         runAsUser: 999
         fsGroup: 999
       containers:
-        - name: agent
-          image: aiops-agent:latest  # Replace with your registry URI
+        - name: backend-aiops-k8s
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+          image: zain75117/aiops-k8s-be:1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -36,6 +43,8 @@ spec:
           volumeMounts:
             - name: data-volume
               mountPath: /app/data
+            - name: dashboard-dir
+              mountPath: /app/dashboard
           resources:
             requests:
               cpu: 100m
@@ -59,16 +68,19 @@ spec:
       volumes:
         - name: data-volume
           persistentVolumeClaim:
-            claimName: aiops-data-pvc
+            claimName: aiops-backend-pvc
+        - name: dashboard-dir
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: aiops-data-pvc
+  name: aiops-backend-pvc
   namespace: aiops-system
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: hostpath
   resources:
     requests:
       storage: 1Gi
@@ -76,15 +88,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: aiops-agent-service
+  name: aiops-backend-service
   namespace: aiops-system
   labels:
-    app.kubernetes.io/name: aiops-agent
+    app.kubernetes.io/name: aiops-backend
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: aiops-agent
+    app.kubernetes.io/name: aiops-backend
   ports:
-    - port: 80
+    - port: 8000
       targetPort: 8000
       name: http

@@ -69,3 +69,7 @@ Thumbs.db
 .vscode/
 .idea/
 db/
+
+# Kubernetes config files
+kubernetes/config-*.yaml
+!kubernetes/config-*.example.yaml

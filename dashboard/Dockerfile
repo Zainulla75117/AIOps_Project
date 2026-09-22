@@ -15,10 +15,13 @@ RUN npm run build
 
 
 # ---------- Production stage ----------
-FROM nginx:alpine
+FROM nginxinc/nginx-unprivileged:alpine
 
 # Remove default nginx files
+# Using user root to clear the folder if necessary, though unprivileged image already sets up proper dirs
+USER root
 RUN rm -rf /usr/share/nginx/html/*
+USER nginx
 
 # Copy Vite production build
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -27,7 +30,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY default.conf.template /etc/nginx/templates/default.conf.template
 
 # Expose HTTP
-EXPOSE 80
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

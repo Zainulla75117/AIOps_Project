@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aiops-dashboard-config
+  namespace: aiops-system
+data:
+  BACKEND_URL: "http://aiops-backend-service:8000"
