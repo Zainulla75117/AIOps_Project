@@ -28,6 +28,7 @@ pipeline {
                     echo "Pushing Image to Registry..."
                     docker.withRegistry('', DOCKER_CREDS_ID) {
                         docker.image("${BACKEND_IMAGE}:${IMAGE_TAG}").push()
+                        sh "docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} ${BACKEND_IMAGE}:latest"
                         docker.image("${BACKEND_IMAGE}:latest").push()
                     }
                 }

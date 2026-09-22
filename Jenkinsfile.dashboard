@@ -28,6 +28,7 @@ pipeline {
                     echo "Pushing Image to Registry..."
                     docker.withRegistry('', DOCKER_CREDS_ID) {
                         docker.image("${DASHBOARD_IMAGE}:${IMAGE_TAG}").push()
+                        sh "docker tag ${DASHBOARD_IMAGE}:${IMAGE_TAG} ${DASHBOARD_IMAGE}:latest"
                         docker.image("${DASHBOARD_IMAGE}:latest").push()
                     }
                 }
