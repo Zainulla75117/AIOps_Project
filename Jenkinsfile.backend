@@ -23,9 +23,6 @@ pipeline {
         }
         
         stage('Push Docker Image') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo "Pushing Image to Registry..."
@@ -38,9 +35,6 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo "Deploying Backend to Kubernetes using Service Account..."
