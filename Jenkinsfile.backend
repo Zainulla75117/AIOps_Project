@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+
+    environment {
+        // Docker credentials ID as provided
+        DOCKER_CREDS_ID = 'zain_docker_creds'
+        
+        // Define Image Name based on existing Kubernetes manifests
+        BACKEND_IMAGE = 'zain75117/aiops-k8s-be'
+        
+        // Use Jenkins BUILD_NUMBER as the image tag for versioning
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "Building Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+                    docker.build("${BACKEND_IMAGE}:${IMAGE_TAG}", "-f kubernetes_agent/Dockerfile kubernetes_agent/")
+                }
+            }
+        }
+        
+        stage('Push Docker Image') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "Pushing Image to Registry..."
+                    docker.withRegistry('', DOCKER_CREDS_ID) {
+                        docker.image("${BACKEND_IMAGE}:${IMAGE_TAG}").push()
+                        docker.image("${BACKEND_IMAGE}:latest").push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "Deploying Backend to Kubernetes using Service Account..."
+                    
+                    // Update image tag in backend k8s manifest to the newly built image tag
+                    sh """
+                    sed -i "s|image: ${BACKEND_IMAGE}:.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/backend.yaml
+                    
+                    # Apply the backend manifest
+                    kubectl apply -f kubernetes/backend.yaml
+                    # Also apply relevant services, ingresses, etc if needed. 
+                    # Assuming applying the whole directory is still safe, but we can target backend.yaml specifically
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Backend Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Backend Pipeline failed. Check the logs for details.'
+        }
+    }
+}
