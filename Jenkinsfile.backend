@@ -38,7 +38,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    echo "Deploying Backend to Kubernetes using Service Account..."
+                    echo "Deploying Backend to Kubernetes..."
                     
                     // Update image tag in backend k8s manifest to the newly built image tag
                     sh """
@@ -46,8 +46,6 @@ pipeline {
                     
                     # Apply the backend manifest
                     kubectl apply -f kubernetes/backend.yaml
-                    # Also apply relevant services, ingresses, etc if needed. 
-                    # Assuming applying the whole directory is still safe, but we can target backend.yaml specifically
                     """
                 }
             }
