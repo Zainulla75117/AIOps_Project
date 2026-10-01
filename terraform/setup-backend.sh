@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 REGION="ap-south-1"
-BUCKET_NAME="aiops-project-tf-state"
+BUCKET_NAME="aiops-project-tf-state-new"
 
 
 echo "Creating S3 bucket $BUCKET_NAME in region $REGION..."

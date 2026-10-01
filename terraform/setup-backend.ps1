@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 # Configuration
 $Region = "ap-south-1"
-$BucketName = "aiops-project-tf-state"
+$BucketName = "aiops-project-tf-state-new"
 
 
 Write-Host "Creating S3 bucket $BucketName in region $Region..."

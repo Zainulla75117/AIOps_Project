@@ -23,7 +23,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "aiops-project-tf-state"
+    bucket         = "aiops-project-tf-state-new"
     key            = "infrastructure/terraform.tfstate"
     region         = "ap-south-1"
     use_lockfile   = true
