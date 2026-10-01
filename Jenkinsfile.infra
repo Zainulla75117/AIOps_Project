@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    tools {
+        terraform 'terraform1.16.0'
+    }
+    
     parameters {
         choice(name: 'ACTION', choices: ['plan', 'apply', 'destroy'], description: 'Choose the Terraform action to perform')
     }
