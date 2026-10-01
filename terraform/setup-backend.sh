@@ -6,7 +6,7 @@ set -e
 # Configuration
 REGION="ap-south-1"
 BUCKET_NAME="aiops-project-tf-state"
-DYNAMODB_TABLE="aiops-project-tf-locks"
+
 
 echo "Creating S3 bucket $BUCKET_NAME in region $REGION..."
 # Note: ap-south-1 requires a LocationConstraint
@@ -30,12 +30,6 @@ aws s3api put-bucket-encryption \
     --bucket "$BUCKET_NAME" \
     --server-side-encryption-configuration '{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'
 
-echo "Creating DynamoDB table $DYNAMODB_TABLE in region $REGION..."
-aws dynamodb create-table \
-    --table-name "$DYNAMODB_TABLE" \
-    --region "$REGION" \
-    --attribute-definitions AttributeName=LockID,AttributeType=S \
-    --key-schema AttributeName=LockID,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST
+
 
 echo "Backend resources created successfully!"

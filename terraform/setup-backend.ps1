@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 # Configuration
 $Region = "ap-south-1"
 $BucketName = "aiops-project-tf-state"
-$DynamoDbTable = "aiops-project-tf-locks"
+
 
 Write-Host "Creating S3 bucket $BucketName in region $Region..."
 # Note: ap-south-1 requires a LocationConstraint
@@ -27,12 +27,6 @@ aws s3api put-bucket-encryption `
     --bucket $BucketName `
     --server-side-encryption-configuration '{\"Rules\": [{\"ApplyServerSideEncryptionByDefault\": {\"SSEAlgorithm\": \"AES256\"}}]}'
 
-Write-Host "Creating DynamoDB table $DynamoDbTable in region $Region..."
-aws dynamodb create-table `
-    --table-name $DynamoDbTable `
-    --region $Region `
-    --attribute-definitions AttributeName=LockID,AttributeType=S `
-    --key-schema AttributeName=LockID,KeyType=HASH `
-    --billing-mode PAY_PER_REQUEST
+
 
 Write-Host "Backend resources created successfully!"

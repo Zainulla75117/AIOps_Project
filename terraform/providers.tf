@@ -26,7 +26,7 @@ terraform {
     bucket         = "aiops-project-tf-state"
     key            = "infrastructure/terraform.tfstate"
     region         = "ap-south-1"
-    dynamodb_table = "aiops-project-tf-locks"
+    use_lockfile   = true
     encrypt        = true
   }
 }
