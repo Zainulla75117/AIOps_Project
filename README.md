@@ -1,4 +1,4 @@
-# Kubernetes AIOps Agent 🧠☸️
+# Kubernetes AIOps Agent 
 
 An intelligent, hybrid-architecture AIOps agent for Kubernetes that monitors cluster health, detects anomalies, and uses Google Gemini to correlate state, events, and logs to provide actionable root-cause analysis and remediation recommendations.
 
