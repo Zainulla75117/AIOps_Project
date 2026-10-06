@@ -42,10 +42,10 @@ pipeline {
                     
                     // Update image tag in backend k8s manifest to the newly built image tag
                     sh """
-                    sed -i "s|image: ${BACKEND_IMAGE}:.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/backend.yaml
+                    sed -i "s|image: ${BACKEND_IMAGE}:.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/backend/backend.yaml
                     
                     # Apply the backend manifest
-                    kubectl apply -f kubernetes/backend.yaml
+                    kubectl apply -f kubernetes/backend/backend.yaml
                     """
                 }
             }

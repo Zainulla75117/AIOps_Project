@@ -71,5 +71,5 @@ Thumbs.db
 db/
 
 # Kubernetes config files
-kubernetes/config-*.yaml
-!kubernetes/config-*.example.yaml
+kubernetes/**/config-*.yaml
+!kubernetes/**/config-*.example.yaml

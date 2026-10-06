@@ -42,10 +42,10 @@ pipeline {
                     
                     // Update image tag in dashboard k8s manifest to the newly built image tag
                     sh """
-                    sed -i "s|image: ${DASHBOARD_IMAGE}:.*|image: ${DASHBOARD_IMAGE}:${IMAGE_TAG}|g" kubernetes/dashboard.yaml
+                    sed -i "s|image: ${DASHBOARD_IMAGE}:.*|image: ${DASHBOARD_IMAGE}:${IMAGE_TAG}|g" kubernetes/dashboard/dashboard.yaml
                     
                     # Apply the dashboard manifest
-                    kubectl apply -f kubernetes/dashboard.yaml
+                    kubectl apply -f kubernetes/dashboard/dashboard.yaml
                     """
                 }
             }
