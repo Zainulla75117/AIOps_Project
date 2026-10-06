@@ -122,4 +122,30 @@ class InvestigationEngine:
             duration_ms=duration_ms,
         )
 
+        # Agentic Action: Draft a remediation plan
+        if recommendation:
+            import re
+            from kubernetes_agent.engine.brain import BrainManager
+            brain = BrainManager()
+            
+            # Extract potential bash commands from the LLM's recommendation
+            commands = []
+            code_blocks = re.findall(r'```(?:bash|sh|kubectl)?\n(.*?)\n```', recommendation, re.DOTALL)
+            for block in code_blocks:
+                commands.extend(block.strip().split('\n'))
+                
+            if not commands:
+                commands = [f"kubectl describe {anomaly.resource.kind.lower()} {anomaly.resource.name} -n {anomaly.resource.namespace}"]
+                
+            try:
+                brain.draft_plan(
+                    issue_id=report.id,
+                    title=anomaly.title,
+                    commands=commands,
+                    reasoning=recommendation
+                )
+                logger.info("remediation_plan_drafted", incident_id=report.id)
+            except Exception as e:
+                logger.error("failed_to_draft_plan", error=str(e))
+
         return report

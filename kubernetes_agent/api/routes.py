@@ -457,3 +457,31 @@ async def chat_with_agent(
 
     return ChatResponse(reply=reply, sources=rag_sources, model_used=model_used)
 
+
+@router.get("/plans")
+async def list_plans():
+    """List all pending remediation plans in the .brain/plans/ directory."""
+    from kubernetes_agent.engine.brain import BrainManager
+    brain = BrainManager()
+    plans = brain.list_pending_plans()
+    
+    # We return basic metadata for the list view
+    return [{"id": p.replace(".md", ""), "filename": p} for p in plans]
+
+
+@router.get("/plans/{plan_id}")
+async def get_plan(plan_id: str):
+    """Get the full markdown content of a specific remediation plan."""
+    from kubernetes_agent.engine.brain import BrainManager
+    from fastapi import HTTPException
+    
+    brain = BrainManager()
+    file_path = brain.brain_dir / "plans" / f"{plan_id}.md"
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Plan not found")
+        
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    return {"id": plan_id, "content": content}

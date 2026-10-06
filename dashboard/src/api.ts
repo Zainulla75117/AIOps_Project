@@ -222,6 +222,17 @@ export interface IngestionJob {
   updated_at: string;
 }
 
+// ---- Plans Types ----
+export interface PlanSummary {
+  id: string;
+  filename: string;
+}
+
+export interface PlanContent {
+  id: string;
+  content: string;
+}
+
 // ---- API Functions ----
 
 export const api = {
@@ -231,6 +242,16 @@ export const api = {
     return res.data;
   },
   
+  getPlans: async (): Promise<PlanSummary[]> => {
+    const res = await apiClient.get<PlanSummary[]>('/plans');
+    return res.data;
+  },
+
+  getPlan: async (planId: string): Promise<PlanContent> => {
+    const res = await apiClient.get<PlanContent>(`/plans/${planId}`);
+    return res.data;
+  },
+
   getIncidents: async (): Promise<IncidentReport[]> => {
     const res = await apiClient.get<IncidentReport[]>('/incidents');
     return res.data;
