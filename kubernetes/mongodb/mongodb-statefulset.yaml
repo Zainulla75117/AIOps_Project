@@ -16,6 +16,8 @@ spec:
       labels:
         app.kubernetes.io/name: mongodb
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: ip-10-0-100-207.ap-south-1.compute.internal
       containers:
         - name: mongodb
           image: mongo:8.0.4
@@ -40,7 +42,7 @@ spec:
         name: mongodb-data
       spec:
         accessModes: [ "ReadWriteOnce" ]
-        storageClassName: hostpath
+        storageClassName: hostpath-mongodb
         resources:
           requests:
             storage: 2Gi

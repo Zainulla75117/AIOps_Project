@@ -15,6 +15,8 @@ spec:
       labels:
         app.kubernetes.io/name: aiops-backend
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: ip-10-0-100-207.ap-south-1.compute.internal
       serviceAccountName: aiops-agent-sa
       securityContext:
         runAsNonRoot: true
@@ -80,7 +82,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: hostpath
+  storageClassName: hostpath-backend
   resources:
     requests:
       storage: 1Gi

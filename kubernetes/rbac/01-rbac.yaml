@@ -4,7 +4,7 @@ metadata:
   name: aiops-system
   labels:
     app.kubernetes.io/name: aiops-agent
-    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce: baseline
 ---
 apiVersion: v1
 kind: ServiceAccount

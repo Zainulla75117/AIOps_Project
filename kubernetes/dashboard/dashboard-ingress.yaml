@@ -6,7 +6,8 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:384875140409:certificate/9a75f568-cf8a-4e41-acce-6c33c68a933b
     # Nginx default healthcheck on / should return 200 OK
     alb.ingress.kubernetes.io/healthcheck-path: /
 spec:

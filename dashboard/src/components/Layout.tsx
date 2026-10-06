@@ -26,6 +26,9 @@ const Layout: React.FC = () => {
           <NavLink to="/incidents" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             Incidents
           </NavLink>
+          <NavLink to="/approvals" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Approvals
+          </NavLink>
           <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             History
           </NavLink>

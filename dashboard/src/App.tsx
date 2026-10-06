@@ -6,6 +6,7 @@ import Overview from './pages/Overview';
 import Chat from './pages/Chat';
 import Workloads from './pages/Workloads';
 import Incidents from './pages/Incidents';
+import Approvals from './pages/Approvals';
 import History from './pages/History';
 import Namespaces from './pages/Namespaces';
 import Settings from './pages/Settings';
@@ -24,6 +25,7 @@ function App() {
             <Route path="chat" element={<Chat />} />
             <Route path="workloads" element={<Workloads />} />
             <Route path="incidents" element={<Incidents />} />
+            <Route path="approvals" element={<Approvals />} />
             <Route path="history" element={<History />} />
             <Route path="settings/namespaces" element={<Namespaces />} />
             <Route path="settings" element={<Settings />} />
